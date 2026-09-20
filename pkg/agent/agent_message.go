@@ -183,8 +183,11 @@ func (al *AgentLoop) processMessage(ctx context.Context, msg bus.InboundMessage)
 			InboundContext: cloneInboundContext(&msg.Context),
 			RouteResult:    cloneResolvedRoute(&route),
 			SessionScope:   session.CloneScope(&allocation.Scope),
-			UserMessage:    msg.Content,
-			Media:          append([]string(nil), msg.Media...),
+			UserMessage: fmt.Sprintf("[System: %s (ID: %s)] %s",
+				firstNonEmpty(msg.Sender.DisplayName, msg.SenderID),
+				msg.SenderID,
+				msg.Content),
+			Media: append([]string(nil), msg.Media...),
 		},
 		SenderID:                msg.SenderID,
 		SenderDisplayName:       msg.Sender.DisplayName,
@@ -295,8 +298,11 @@ func (al *AgentLoop) processSystemMessage(
 	// Use the origin session for context
 	sessionKey := session.BuildMainSessionKey(agent.ID)
 	dispatch := DispatchRequest{
-		SessionKey:  sessionKey,
-		UserMessage: fmt.Sprintf("[System: %s] %s", msg.SenderID, msg.Content),
+		SessionKey: sessionKey,
+		UserMessage: fmt.Sprintf("[System: %s (ID: %s)] %s",
+			firstNonEmpty(msg.Sender.DisplayName, msg.SenderID),
+			msg.SenderID,
+			msg.Content),
 	}
 	if originChannel != "" || originChatID != "" {
 		dispatch.InboundContext = &bus.InboundContext{

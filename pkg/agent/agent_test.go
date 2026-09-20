@@ -545,8 +545,8 @@ func TestProcessMessage_IncludesCurrentSenderInDynamicContext(t *testing.T) {
 	}
 
 	lastMessage := provider.lastMessages[len(provider.lastMessages)-1]
-	if lastMessage.Role != "user" || lastMessage.Content != "hello" {
-		t.Fatalf("last provider message = %+v, want unchanged user message", lastMessage)
+	if lastMessage.Role != "user" || lastMessage.Content != "[System: Alice (ID: discord:123)] hello" {
+		t.Fatalf("last provider message = %+v, want user message with sender prefix", lastMessage)
 	}
 }
 
@@ -1524,8 +1524,8 @@ func TestProcessMessage_UseCommandArmsSkillForNextMessage(t *testing.T) {
 		t.Fatalf("system prompt missing pending skill content:\n%s", systemPrompt)
 	}
 	lastMessage := provider.lastMessages[len(provider.lastMessages)-1]
-	if lastMessage.Role != "user" || lastMessage.Content != "explain how to list files" {
-		t.Fatalf("last provider message = %+v, want unchanged follow-up user message", lastMessage)
+	if lastMessage.Role != "user" || lastMessage.Content != "[System: telegram:123 (ID: telegram:123)] explain how to list files" {
+		t.Fatalf("last provider message = %+v, want follow-up user message with sender prefix", lastMessage)
 	}
 }
 
@@ -3294,7 +3294,7 @@ func TestProcessMessage_UsesRouteSessionKey(t *testing.T) {
 	if len(history) != 2 {
 		t.Fatalf("expected session history len=2, got %d", len(history))
 	}
-	if history[0].Role != "user" || history[0].Content != "hello" {
+	if history[0].Role != "user" || history[0].Content != "[System: user1 (ID: user1)] hello" {
 		t.Fatalf("unexpected first message in session: %+v", history[0])
 	}
 }

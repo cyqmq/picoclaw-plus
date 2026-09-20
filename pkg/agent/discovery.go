@@ -149,6 +149,15 @@ func descriptorIdentity(agentID string, definition AgentContextDefinition) (stri
 	return name, description
 }
 
+func firstNonEmpty(values ...string) string {
+	for _, v := range values {
+		if strings.TrimSpace(v) != "" {
+			return v
+		}
+	}
+	return ""
+}
+
 func firstNonEmptyLine(content string) string {
 	content = strings.ReplaceAll(content, "\r\n", "\n")
 	for _, line := range strings.Split(content, "\n") {

@@ -216,8 +216,8 @@ func TestTurnProfile_ProcessMessageUsesEnabledTurnProfile(t *testing.T) {
 	if len(provider.messages) != 2 {
 		t.Fatalf("provider messages len = %d, want system + current user", len(provider.messages))
 	}
-	if provider.messages[1].Content != "hello from pico" {
-		t.Fatalf("current message = %q, want hello from pico", provider.messages[1].Content)
+	if provider.messages[1].Content != "[System: pico-user (ID: pico-user)] hello from pico" {
+		t.Fatalf("current message = %q, want user message with sender prefix", provider.messages[1].Content)
 	}
 }
 

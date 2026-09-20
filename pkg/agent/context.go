@@ -815,6 +815,12 @@ func (cb *ContextBuilder) buildDynamicContext(
 		fmt.Fprintf(&sb, "\n\n## Current Sender\n%s", senderLine)
 	}
 
+	logger.DebugCF("agent", "Dynamic context built",
+		map[string]any{
+			"sender_id":           senderID,
+			"sender_display_name": senderDisplayName,
+		})
+
 	return sb.String()
 }
 
