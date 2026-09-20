@@ -279,6 +279,13 @@ func (c *QQChannel) StartTyping(ctx context.Context, chatID string) (func(), err
 
 	chatKind := c.getChatKind(chatID)
 
+	// QQ group message API rejects InputNotify (msg_type=6, 40034033);
+	// the group endpoint has no supported typing indicator, so skip it
+	// and only send the indicator for direct/C2C chats.
+	if chatKind == "group" {
+		return func() {}, nil
+	}
+
 	sendTyping := func(sendCtx context.Context) {
 		typingMsg := &dto.MessageToCreate{
 			MsgType: dto.InputNotifyMsg,
@@ -631,6 +638,7 @@ func (c *QQChannel) handleC2CMessage() event.C2CMessageEventHandler {
 			Platform:    "qq",
 			PlatformID:  senderID,
 			CanonicalID: identity.BuildCanonicalID("qq", senderID),
+			DisplayName: data.Author.Username,
 		}
 
 		if !c.IsAllowedSender(sender) {
@@ -704,6 +712,7 @@ func (c *QQChannel) handleGroupATMessage() event.GroupATMessageEventHandler {
 			Platform:    "qq",
 			PlatformID:  senderID,
 			CanonicalID: identity.BuildCanonicalID("qq", senderID),
+			DisplayName: data.Author.Username,
 		}
 
 		if !c.IsAllowedSender(sender) {
