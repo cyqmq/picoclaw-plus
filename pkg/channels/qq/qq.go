@@ -616,17 +616,21 @@ func (c *QQChannel) handleC2CMessage() event.C2CMessageEventHandler {
 
 		// extract user info
 		var senderID string
-		if data.Author != nil && data.Author.ID != "" {
+		if data.Author != nil {
 			senderID = data.Author.ID
-		} else {
+			if senderID == "" {
+				senderID = data.Author.UserOpenID
+			}
+		}
+		if senderID == "" {
 			logger.WarnC("qq", "Received message with no sender ID")
 			return nil
 		}
 
 		sender := bus.SenderInfo{
 			Platform:    "qq",
-			PlatformID:  data.Author.ID,
-			CanonicalID: identity.BuildCanonicalID("qq", data.Author.ID),
+			PlatformID:  senderID,
+			CanonicalID: identity.BuildCanonicalID("qq", senderID),
 		}
 
 		if !c.IsAllowedSender(sender) {
@@ -685,17 +689,21 @@ func (c *QQChannel) handleGroupATMessage() event.GroupATMessageEventHandler {
 
 		// extract user info
 		var senderID string
-		if data.Author != nil && data.Author.ID != "" {
+		if data.Author != nil {
 			senderID = data.Author.ID
-		} else {
+			if senderID == "" {
+				senderID = data.Author.MemberOpenID
+			}
+		}
+		if senderID == "" {
 			logger.WarnC("qq", "Received group message with no sender ID")
 			return nil
 		}
 
 		sender := bus.SenderInfo{
 			Platform:    "qq",
-			PlatformID:  data.Author.ID,
-			CanonicalID: identity.BuildCanonicalID("qq", data.Author.ID),
+			PlatformID:  senderID,
+			CanonicalID: identity.BuildCanonicalID("qq", senderID),
 		}
 
 		if !c.IsAllowedSender(sender) {

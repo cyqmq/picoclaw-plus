@@ -30,6 +30,54 @@
 
 **Runs on $10 hardware with <10MB RAM** — that's 99% less memory than OpenClaw and 98% cheaper than a Mac mini!
 
+---
+
+## 🧬 PicoClaw-Plus (this fork)
+
+> This repository is **PicoClaw-Plus**, a maintained companion fork of [sipeed/picoclaw](https://github.com/sipeed/picoclaw). It tracks upstream `main` and layers on top a fully **vendored, self-contained** QQ integration stack plus targeted fixes and regression tests. Everything else behaves exactly like upstream PicoClaw.
+
+### 📍 Current State
+
+* Baseline: `sipeed/picoclaw` `main` @ `bbf6893` (v0.2.1-era QQ codebase).
+* The entire QQ integration layer is **vendored locally** into `third_party/botgo` and wired via a `replace` directive in `go.mod` — **no network access to GitHub is required at build time**, so the project can build hermetically in any network-restricted environment (CI, offline servers, CN mirrors).
+* Verified green: full `go build ./...`, `go test ./pkg/channels/qq/` (15/15), plus prebuilt static binaries for **amd64** and **linux-arm64**.
+* A/B reproduced against the live QQ Gateway: the previously broken build now returns `200 wss://api.sgroup.qq.com/websocket` instead of `401 code:11241 请求头Authorization参数格式错误`.
+
+### ✅ What's Better Than Upstream PicoClaw
+
+| # | Improvement | Detail |
+|---|-------------|--------|
+| 1 | **Vendored QQ SDK** | `third_party/botgo` is committed in-repo; upstream relies on `tencent-connect/botgo` which is GitHub-only and can break/block builds. |
+| 2 | **OpenID message support** | Upstream's vendored `dto.User` has no `MemberOpenID`/`UserOpenID` fields, so openid-style QQ messages (group/C2C with no plain `user_id`) would not resolve to a sender. This fork fills them in and maps them to `sender_id` via a unified helper. |
+| 3 | **Dependency trap fixed** | The QR/QQ 401 (`code 11241`) was caused by `go-resty/resty` being force-upgraded to `v2.17.1` in `go.mod`, which silently changes the auth-header scheme. We pinned `resty v2.6.0` (the version the SDK was built against) and confirmed the fix with a controlled A/B against the live gateway. |
+| 4 | **Regression tests** | Added `TestHandleC2CMessage_UserOpenIDFlowsIntoSender` and `TestHandleGroupATMessage_MemberOpenIDFlowsIntoSender` so the openid mapping can never silently regress. |
+| 5 | **Static arm64 build** | `CGO_ENABLED=0` cross-build produces a self-contained `build/picoclaw-linux-arm64` for ARM boards with zero runtime dependencies. |
+
+### ✨ New Features
+
+* **OpenID sender resolution** — C2C messages fall back to `Message.Author.UserOpenID`, group messages to `Message.Author.MemberOpenID` when `Author.ID` is empty; the resolved value is propagated to `sender_id` / `platform_id` / `canonical_id`.
+* **QQ group & C2C management events** (from the vendored SDK): `GROUP_ADD_ROBOT`, `GROUP_DEL_ROBOT`, `GROUP_MSG_REJECT`, `GROUP_MSG_RECEIVE`, `C2C_MSG_REJECT`, `C2C_MSG_RECEIVE`.
+* **Rich-media direct upload** — botgo-plus `file_data` upload path (direct binary upload) avoiding the need for a public URL.
+
+### 📦 Referenced Repositories & Projects
+
+| Project | Role |
+|---------|------|
+| [sipeed/picoclaw](https://github.com/sipeed/picoclaw) | Upstream project this fork is based on. |
+| [kylin930/botgo-plus](https://github.com/kylin930/botgo-plus) | The maintained QQ SDK fork, **vendored** into `third_party/botgo` (module identity unified as `github.com/tencent-connect/botgo`). |
+| [tencent-connect/botgo](https://github.com/tencent-connect/botgo) | Official QQ OpenAPI Go SDK — the API/dto contract baseline (`v0.2.1`). |
+| [go-resty/resty](https://github.com/go-resty/resty) | HTTP client used by the QQ SDK; pinned to `v2.6.0` in this fork. |
+| [golang.org/x/oauth2](https://pkg.go.dev/golang.org/x/oauth2) | Token source used by the QQ SDK. |
+
+### 🔧 Building This Fork
+
+```bash
+make build                    # amd64
+make build-linux-arm64        # static linux-arm64 (CGO_ENABLED=0)
+```
+
+> Binaries: `build/picoclaw` (amd64), `build/picoclaw-linux-arm64`. The SDK and its deps are fully committed under `third_party/botgo`, so no GitHub network access is needed to compile.
+
 <table align="center">
 <tr align="center">
 <td align="center" valign="top">

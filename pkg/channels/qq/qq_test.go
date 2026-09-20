@@ -119,6 +119,35 @@ func TestHandleC2CMessage_AttachmentOnlyPublishesMedia(t *testing.T) {
 	}
 }
 
+func TestHandleC2CMessage_UserOpenIDFlowsIntoSender(t *testing.T) {
+	messageBus := bus.NewMessageBus()
+	ch := &QQChannel{
+		BaseChannel: channels.NewBaseChannel("qq", nil, messageBus, nil),
+		dedup:       make(map[string]time.Time),
+		done:        make(chan struct{}),
+		ctx:         context.Background(),
+	}
+
+	err := ch.handleC2CMessage()(nil, &dto.WSC2CMessageData{
+		ID:      "msg-openid-c2c",
+		Content: "hello",
+		Author: &dto.User{
+			UserOpenID: "USER-OPENID-C2C-001",
+		},
+	})
+	if err != nil {
+		t.Fatalf("handleC2CMessage() error = %v", err)
+	}
+
+	inbound := waitInboundMessage(t, messageBus)
+	if inbound.Context.Raw["account_id"] != "USER-OPENID-C2C-001" {
+		t.Fatalf("account_id raw = %q, want %q", inbound.Context.Raw["account_id"], "USER-OPENID-C2C-001")
+	}
+	if inbound.Context.SenderID != "USER-OPENID-C2C-001" {
+		t.Fatalf("SenderID = %q, want %q", inbound.Context.SenderID, "USER-OPENID-C2C-001")
+	}
+}
+
 func TestHandleGroupATMessage_AttachmentOnlyPublishesMedia(t *testing.T) {
 	messageBus := bus.NewMessageBus()
 	store := media.NewFileMediaStore()
@@ -167,6 +196,36 @@ func TestHandleGroupATMessage_AttachmentOnlyPublishesMedia(t *testing.T) {
 	}
 	if inbound.Context.ChatType != "group" {
 		t.Fatalf("inbound.Context.ChatType = %q, want group", inbound.Context.ChatType)
+	}
+}
+
+func TestHandleGroupATMessage_MemberOpenIDFlowsIntoSender(t *testing.T) {
+	messageBus := bus.NewMessageBus()
+	ch := &QQChannel{
+		BaseChannel: channels.NewBaseChannel("qq", nil, messageBus, nil),
+		dedup:       make(map[string]time.Time),
+		done:        make(chan struct{}),
+		ctx:         context.Background(),
+	}
+
+	err := ch.handleGroupATMessage()(nil, &dto.WSGroupATMessageData{
+		ID:      "msg-openid-group",
+		GroupID: "GROUP-OPENID-001",
+		Content: "hello",
+		Author: &dto.User{
+			MemberOpenID: "MEMBER-OPENID-ABC",
+		},
+	})
+	if err != nil {
+		t.Fatalf("handleGroupATMessage() error = %v", err)
+	}
+
+	inbound := waitInboundMessage(t, messageBus)
+	if inbound.Context.Raw["account_id"] != "MEMBER-OPENID-ABC" {
+		t.Fatalf("account_id raw = %q, want %q", inbound.Context.Raw["account_id"], "MEMBER-OPENID-ABC")
+	}
+	if inbound.Context.SenderID != "MEMBER-OPENID-ABC" {
+		t.Fatalf("SenderID = %q, want %q", inbound.Context.SenderID, "MEMBER-OPENID-ABC")
 	}
 }
 
